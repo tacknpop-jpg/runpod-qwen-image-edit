@@ -83,3 +83,6 @@ The one node that matters is `ImageScale`. Its output feeds three places — the
 AGPL-3.0, inherited from [worker-comfyui](https://github.com/runpod-workers/worker-comfyui) and, further upstream, [ComfyUI](https://github.com/comfyanonymous/ComfyUI).
 
 Model weights are governed by their respective upstream licenses.
+
+
+<!-- rebuild: retrigger RunPod build -->
