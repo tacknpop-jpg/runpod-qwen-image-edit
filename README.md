@@ -96,3 +96,5 @@ Model weights are governed by their respective upstream licenses.
 <!-- rebuild: retrigger RunPod build tests (5) -->
 
 <!-- rebuild: auto-retry 2026-11-24 23:17 JST -->
+
+<!-- rebuild: auto-retry 2026-11-25 05:25 JST -->
