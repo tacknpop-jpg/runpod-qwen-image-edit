@@ -101,3 +101,4 @@ Model weights are governed by their respective upstream licenses.
 <!-- rebuild: auto-retry 2026-11-25 11:16 JST -->
 
 <!-- rebuild: auto-retry 2026-11-25 17:29 JST -->
+<!-- rebuild: auto-retry 2026-11-25 23:18 JST -->
