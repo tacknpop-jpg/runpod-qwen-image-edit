@@ -1,0 +1,45 @@
+name: build-edit-image-crane
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  packages: write
+jobs:
+  append:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install crane
+        run: |
+          curl -sL https://github.com/google/go-containerregistry/releases/download/v0.20.4/go-containerregistry_Linux_x86_64.tar.gz -o /tmp/crane.tgz
+          tar -xzf /tmp/crane.tgz -C /tmp crane
+          sudo install -m 0755 /tmp/crane /usr/local/bin/crane
+          crane version
+      - name: Log in to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | crane auth login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Build layers
+        run: |
+          set -euo pipefail
+          mkdir -p work layers
+          make_layer () {
+            local url="$1" destdir="$2" fname="$3" out="$4"
+            mkdir -p "work/$destdir"
+            curl -fL --retry 3 -o "work/$destdir/$fname" "$url"
+            tar --owner=0 --group=0 --numeric-owner -cf "layers/$out" -C work "$destdir"
+            rm -rf work
+            mkdir -p work
+          }
+          make_layer "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors" "comfyui/models/diffusion_models" "qwen_image_edit_2511_fp8mixed.safetensors" "diffusion.tar"
+          make_layer "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors" "comfyui/models/text_encoders" "qwen_2.5_vl_7b_fp8_scaled.safetensors" "text.tar"
+          make_layer "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors" "comfyui/models/vae" "qwen_image_vae.safetensors" "vae.tar"
+          make_layer "https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors" "comfyui/models/loras" "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors" "lora.tar"
+          mkdir -p workh
+          cp handler.py workh/handler.py
+          tar --owner=0 --group=0 --numeric-owner -cf layers/handler.tar -C workh handler.py
+          ls -la layers
+      - name: Append and push
+        run: |
+          crane append -b runpod/worker-comfyui:5.8.6-base-cuda12.8.1 -f layers/diffusion.tar -f layers/text.tar -f layers/vae.tar -f layers/lora.tar -f layers/handler.tar -t ghcr.io/tacknpop-jpg/runpod-qwen-image-edit:weld-1
+          crane manifest ghcr.io/tacknpop-jpg/runpod-qwen-image-edit:weld-1 | head -c 2000
